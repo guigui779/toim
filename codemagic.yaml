@@ -81,7 +81,7 @@ workflows:
       - name: 构建 IPA 
         script: |
           xcodebuild clean \
-            -workspace OpenIMCore.framework \
+            -workspace  OpenIMSDKUIKit.xcworkspac \
             -scheme OpenIMSDKUIKit_Example \
             -configuration Debug \
             -sdk iphoneos
