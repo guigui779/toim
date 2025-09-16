@@ -80,6 +80,9 @@ workflows:
           pod repo update
       - name: 构建 IPA 
         script: |
-          xcodebuild clean -workspace OpenIMSDKUIKit.xcworkspace -scheme OpenIMSDKUIKit_Example -configuration Debug
-    artifacts:
+          xcodebuild clean \
+            -workspace OpenIMSDKUIKit.xcodeproj \
+            -scheme OpenIMSDKUIKit_Example \
+            -configuration Debug \
+            -sdk iphoneos
       - Example/build/IPA_Output/*.ipa
