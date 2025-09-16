@@ -76,11 +76,11 @@ workflows:
       - name: 安装依赖
         script: |
           cd Example
+           
           pod install
           pod repo update
       - name: 构建 IPA 
-        scripts:
-           - script: |
+      - script: |
           xcodebuild \
             -workspace OpenIMSDKUIKit.xcworkspace \
             -scheme OpenIMSDKUIKit_Example \
