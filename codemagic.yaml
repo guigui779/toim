@@ -80,7 +80,7 @@ workflows:
           pod install
           pod repo update
       - name: 构建 IPA 
-      - script: |
+        script: |
           xcodebuild \
             -workspace OpenIMSDKUIKit.xcworkspace \
             -scheme OpenIMSDKUIKit_Example \
