@@ -1,0 +1,85 @@
+workflows:
+  ios_native_build:
+    name: wenqiang Luo
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "main"
+        - pattern: "master"
+        - pattern: "maina"
+    environment:
+      groups:
+        - ios
+      vars:
+        DEVELOPMENT_TEAM: "UA9Z6NRCL8"
+        CODE_SIGN_STYLE: "Manual"
+        CODE_SIGN_IDENTITY: "iPhone Distribution"
+        PROVISIONING_PROFILE_SPECIFIER: "Flutter1 Distribution"
+        PRODUCT_BUNDLE_IDENTIFIER: "app.suyun182.test"
+        ARCHIVE_PATH: "./Example/build/OpenIM_Archive.xcarchive"
+        IPA_OUTPUT_PATH: "./Example/build/IPA_Output"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Select Xcode version
+        script: |
+          echo "=== 正在选择 Xcode 版本 (优先: 15.4) ==="
+          XCODE_PATHS=("/Applications/Xcode_15.4.app" "/Applications/Xcode-15.4.app" "/Applications/Xcode.app")
+          SELECTED_XCODE=""
+          for path in "${XCODE_PATHS[@]}"; do
+            if [ -d "$path" ]; then
+              SELECTED_XCODE="$path"
+              break
+            fi
+          done
+          if [ -n "$SELECTED_XCODE" ]; then
+            sudo xcode-select -s "$SELECTED_XCODE/Contents/Developer"
+            echo "✅ 使用 Xcode: $SELECTED_XCODE"
+          else
+            echo "⚠️ 未找到 Xcode, 构建可能会失败!"
+            exit 1
+          fi
+          xcodebuild -version
+      - name: Validate development environment
+        script: |
+          if [ -z "$IOS_P12_BASE64" ]; then
+            echo "IOS_P12_BASE64 未设置，构建终止。"
+            exit 1
+          fi
+          echo "=== 验证开发环境 ==="
+          sw_vers
+          xcodebuild -version
+          git --version
+          pod --version
+      - name: Configure iOS certificates and provisioning profiles
+        script: |
+          set -euo pipefail
+          echo "=== 正在解码并安装证书和描述文件 ==="
+          decode_base64() {
+            echo "$1" | base64 --decode > "$2"
+          }
+          mkdir -p ~/private_keys
+          decode_base64 "${IOS_P12_BASE64}" ~/private_keys/certificate.p12
+          decode_base64 "${IOS_MOBILEPROVISION_BASE64}" ~/private_keys/profile.mobileprovision
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import ~/private_keys/certificate.p12 -k build.keychain -P "${P12_PASSWORD}" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" build.keychain
+          PROFILE_DIR=~/Library/MobileDevice/Provisioning\ Profiles
+          mkdir -p "$PROFILE_DIR"
+          cp ~/private_keys/profile.mobileprovision "$PROFILE_DIR/"
+          echo "=== 正在验证代码签名标识 ==="
+          security find-identity -v -p codesigning | grep "$CODE_SIGN_IDENTITY"
+      - name: 安装依赖
+        script: |
+          cd Example
+          pod install
+          pod repo update
+      - name: 构建 IPA 
+        script: |
+          xcodebuild clean -workspace OpenIMSDKUIKit.xcworkspace -scheme OpenIMSDKUIKit_Example -configuration Debug
+    artifacts:
+      - Example/build/IPA_Output/*.ipa
