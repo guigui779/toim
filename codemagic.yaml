@@ -80,9 +80,18 @@ workflows:
           pod repo update
       - name: 构建 IPA 
         script: |
-          xcodebuild clean \
-            -workspace  OpenIMSDKUIKit.xcworkspac \
+           - script: |
+          xcodebuild \
+            -workspace OpenIMSDKUIKit.xcworkspace \
             -scheme OpenIMSDKUIKit_Example \
-            -configuration Debug \
-            -sdk iphoneos
-      - Example/build/IPA_Output/*.ipa
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ./build/archive.xcarchive \
+            clean archive
+          # 导出 IPA（官方没提，但如果需要产物，加这行）
+          xcodebuild -exportArchive \
+            -archivePath ./build/archive.xcarchive \
+            -exportPath ./build/ipa \
+            -exportOptionsPlist ./ExportOptions.plist
+    artifacts:
+      - Example/build/ipa/*.ipa
